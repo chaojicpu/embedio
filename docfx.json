@@ -3,7 +3,7 @@
     {
       "src": [
         {
-          "files": [ "src/Unosquare.Labs.EmbedIO/**/*.cs" ],
+          "files": [ "src/packages/EmbedIO/**/*.cs" ],
           "exclude": [ "**/bin/**", "**/obj/**" ]
         }
       ],
@@ -30,15 +30,16 @@
     ],
     "resource": [
       {
-        "files": [ "best-practices/resources/**", "embedio.png", "src/Unosquare.Labs.EmbedIO.Samples/html/favicon.ico"]
+        "files": [ "best-practices/resources/**", "embedio.png"]
       }
     ],
     "globalMetadata": {
-      "_appTitle": "Unosquare EmbedIO",
+      "_appTitle": "EmbedIO",
       "_enableSearch": true,
-      "_appFaviconPath": "src/Unosquare.Labs.EmbedIO.Samples/html/favicon.ico",
+      "_appFaviconPath": "src/Command/favicon.ico",
       "_appLogoPath": "best-practices/resources/images/logo.png",
-      "_docLogo":  "embedio.png"
+      "_docLogo":  "embedio.png",
+      "_docfxVersion": "2.45.0.0"
     },
     "dest": "_site"
   }

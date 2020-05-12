@@ -1,34 +1,24 @@
-version: '1.13.{build}'
+version: '3.0.{build}'
 image: 
-- Visual Studio 2017
-- Ubuntu
-notifications:
-- provider: Slack
-  auth_token:
-    secure: Q+xg4/yU5OR9BVF14cw4yZ+3qlhMeYDsAhUQyOIszmF1mHvq44tIvQpWByBJCd/cgUIZk3SwBpk4hh1MrkQIk6rnaOZ2LNBTev4zrq36oXk=
-  channel: '#builds'
+    - Visual Studio 2019
+    - Ubuntu
 environment:
-  APPVEYOR_YML_DISABLE_PS_LINUX: true
-  DOTNET_CLI_TELEMETRY_OPTOUT: 1
-  COVERALLS_REPO_TOKEN:  
-       secure: 1Ce1wX4c2duHsRshiJRZFVIe6VI/r0WTAUG/tXuGFue9CmTI13NJRgZbl9irVKBA
-  op_build_user: "Geo Perez"
-  op_build_user_email: "geovanni.perez@gmail.com"
-  access_token:
+    APPVEYOR_YML_DISABLE_PS_LINUX: true
+    COVERALLS_REPO_TOKEN:  
+        secure: 1Ce1wX4c2duHsRshiJRZFVIe6VI/r0WTAUG/tXuGFue9CmTI13NJRgZbl9irVKBA
+    op_build_user: "Geo Perez"
+    op_build_user_email: "geovanni.perez@gmail.com"
+    access_token:
        secure: HzWdswNyfQbQ0vLk9IQyO+Ei9mxoPYp9rvv6HPhtC9J/Fm7EHRzyV953pbPRXI9I
 before_build:
-- ps: |
+    - ps: |
         if(-Not $env:APPVEYOR_PULL_REQUEST_TITLE)
         {
             git checkout $env:APPVEYOR_REPO_BRANCH -q
             cinst docfx -y --no-progress
         }
-- ps: cinst resharper-clt.portable -y --no-progress
-- dotnet restore --verbosity q
-- cmd: mkdir tools
-- cmd: nuget install OpenCover -Version 4.6.519 -OutputDirectory tools
-- cmd: nuget install coveralls.net -Version 0.7.0 -OutputDirectory tools
-- ps: | 
+    - dotnet restore --verbosity q src
+    - ps: | 
         $date_now = Get-Date
         $cert = New-SelfSignedCertificate -certstorelocation cert:\localmachine\my -dnsname localhost -notafter $date_now
         $certThumb = $cert.Thumbprint
@@ -36,32 +26,12 @@ before_build:
         $command = "http add sslcert ipport=0.0.0.0:5555 certhash=$certThumb appid={$guid}"
         $command | netsh
 build_script:
-- cmd: msbuild /verbosity:quiet /p:Configuration=Release Unosquare.Labs.EmbedIO.sln
-- cmd: | 
-      cd src/EmbedIO.Forms.Sample/
-      msbuild /t:restore EmbedIO.Forms.Sample.sln
-      msbuild /verbosity:quiet /p:Configuration=Release EmbedIO.Forms.Sample.sln
-      cd ..
-      cd ..
-- cmd: InspectCode --swea -o=inspectcode.xml -s=Error --verbosity=ERROR Unosquare.Labs.EmbedIO.sln
-- ps: |
-      [xml]$xml = Get-Content inspectcode.xml
-      if ($xml.Report.Issues.HasChildNodes)
-      {
-            $xml.Report.Issues.ChildNodes  | foreach { Write-Output $_.InnerXml }
-            throw "inspectcode.exe found issues with severity level Error; see inspectcode.xml for details"
-      }
+    - cmd: msbuild /target:Pack /verbosity:quiet /p:Configuration=Release src/EmbedIO.sln
 test_script:
-- dotnet test test/Unosquare.Labs.EmbedIO.Tests/Unosquare.Labs.EmbedIO.Tests.csproj -c Release -f netcoreapp2.2
-- cmd: tools\OpenCover.4.6.519\tools\OpenCover.Console.exe -target:"%ProgramFiles%\dotnet\dotnet.exe" -targetargs:"test test\Unosquare.Labs.EmbedIO.Tests\Unosquare.Labs.EmbedIO.Tests.csproj -c Release -f net472" -output:coverage.xml -filter:"+[Unosquare.Labs.EmbedIO*]* -[Unosquare.Labs.EmbedIO.Test*]*" -register:userdotnet
-- ps: |
-        if(-Not $env:APPVEYOR_PULL_REQUEST_TITLE)
-        {
-            tools\coveralls.net.0.7.0\tools\csmacnz.Coveralls.exe --opencover -i coverage.xml --serviceName appveyor --jobId $Env:APPVEYOR_BUILD_NUMBER
-        }
+    - dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:Exclude=[NUnit3.TestAdapter]* src/tests/EmbedIO.Tests/EmbedIO.Tests.csproj -c Release
 after_build:
-- ps: |
-        if(-Not $env:APPVEYOR_PULL_REQUEST_TITLE)
+    - ps: |
+        if(-Not $env:APPVEYOR_PULL_REQUEST_TITLE -And $env:APPVEYOR_REPO_BRANCH -eq "master")
         {
             git config --global credential.helper store
             Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:access_token):x-oauth-basic@github.com`n"
